@@ -108,7 +108,7 @@ void user_task(void *pvParameters)
 #include "connect.h"
 #include "mqtt_client.h"
 #include "esp8266_wrapper.h"
-bme680_values_float_t values;
+
 #define TAG "MQTT"
 
 xQueueHandle readingQueue;
@@ -188,30 +188,19 @@ void MQTTLogic(int sensorReading)
     };
     pms5003_setup(&pms0);
     // Set UART Parameter.
-    uart_set_baud(0, 115200);
+    
     // Give the UART some time to settle
     vTaskDelay(1);
 
     
-    /** -- MANDATORY PART -- */
 
-    #ifdef SPI_USED
 
-    spi_bus_init (SPI_BUS, SPI_SCK_GPIO, SPI_MISO_GPIO, SPI_MOSI_GPIO);
-
-    // init the sensor connected to SPI_BUS with SPI_CS_GPIO as chip select.
-    sensor = bme680_init_sensor (SPI_BUS, 0, SPI_CS_GPIO);
-    
-    #else  // I2C
-
-    // Init all I2C bus interfaces at which BME680 sensors are connected
-    i2c_init(I2C_BUS, I2C_SCL_PIN, I2C_SDA_PIN, 100000);
+   
 
     // init the sensor with slave address BME680_I2C_ADDRESS_2 connected to I2C_BUS.
     sensor = bme680_init_sensor (I2C_BUS, BME680_I2C_ADDRESS_2, 0);
 
-    #endif  // SPI_USED
-
+     bme680_values_float_t values;
     if (sensor)
     {
         /** -- SENSOR CONFIGURATION PART (optional) --- */
@@ -250,12 +239,13 @@ void MQTTLogic(int sensorReading)
         if (bme680_force_measurement (sensor))
         {
             // passive waiting until measurement results are available
-            vTaskDelay (duration);
+            // vTaskDelay (duration);
 
             // alternatively: busy waiting until measurement results are available
-            // while (bme680_is_measuring (sensor)) ;
+             while (bme680_is_measuring (sensor)) ;
 
             // get the results and do something with them
+           
             if (bme680_get_results_float (sensor, &values)){
                 printf(" BME680 Sensor: %.2f °C, %.2f %%, %.2f hPa, %.2f Ohm\n",
                        values.temperature, values.humidity,
@@ -285,7 +275,8 @@ void MQTTLogic(int sensorReading)
       char data[500];
       sprintf(data, "BME680 Sensor: %.2f °C, %.2f %%, %.2f hPa, %.2f Ohm\n", values.temperature, values.humidity,
                        values.pressure, values.gas_resistance);
-      printf("sending data: %d", sensorReading);
+      printf("sending data: BME680 Sensor: %.2f °C, %.2f %%, %.2f hPa, %.2f Ohm\n", values.temperature, values.humidity,
+                       values.pressure, values.gas_resistance);
       esp_mqtt_client_publish(client, "topic/my/timothy/1", data, strlen(data), 2, false);
       break;
      case MQTT_PUBLISHED:
@@ -329,7 +320,8 @@ void generateReading(void *params)
 
 void user_init(void)
 {
-
+   i2c_init(I2C_BUS, I2C_SCL_PIN, I2C_SDA_PIN, 100000);
+   uart_set_baud(0, 115200);
   readingQueue = xQueueCreate(sizeof(int), 10);
   wifiInit();
   xTaskCreate(OnConnected, "handel comms", 1024 * 5, NULL, 5, &taskHandle);
