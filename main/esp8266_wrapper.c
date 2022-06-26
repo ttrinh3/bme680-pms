@@ -1,7 +1,7 @@
 /**
  * Wrapper module for source code compatibility with esp-open-rtos.
  */
-
+#define ESP_PLATFORM
 #ifdef ESP_PLATFORM  // ESP32 (ESP-IDF)
 
 #include <sys/time.h>
@@ -74,7 +74,7 @@ void i2c_init (int bus, gpio_num_t scl, gpio_num_t sda, uint32_t freq)
     conf.scl_io_num = scl;
     conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
     conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.master.clk_speed = freq;
+    conf.master.clk_speed = 100000;
     i2c_param_config(bus, &conf);
     i2c_driver_install(bus, I2C_MODE_MASTER, 0, 0, 0);
 }
