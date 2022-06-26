@@ -86,16 +86,18 @@ void getSensorReadings(void){
                 sprintf(buffer," BME680 Sensor: %.2f °C, %.2f %%, %.2f hPa, %.2f Ohm\n",
                        values.temperature, values.humidity,
                        values.pressure, values.gas_resistance);
-                    printf("%s\n",buffer);
+                    
                         pms5003_make_measurement(&pms0, &reading);
-                        pms5003_print_measurement(&reading);       
-                       
+                        pms5003_print_measurement(&reading);  
+                        printf("%s\n",buffer);     
+                         
                        }
         }
         // passive waiting until 1 second is over
         vTaskDelayUntil(&last_wakeup, 1000 / portTICK_PERIOD_MS);
     }
     }
-    else
-        printf("Could not initialize BME680 sensor\n");
+
+    //    return 'aegragre';
+    
 }

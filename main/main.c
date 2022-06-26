@@ -40,6 +40,7 @@
 void user_init(void)
 {
   while(1){
+    // printf("%s\n",getSensorReadings());
     getSensorReadings();
     vTaskDelay(1000/portTICK_RATE_MS);
 
