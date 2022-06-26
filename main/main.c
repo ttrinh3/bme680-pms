@@ -182,13 +182,16 @@ void MQTTLogic(int sensorReading)
 
             // get the results and do something with them
             if (bme680_get_results_float (sensor, &values)){
-              char buffer[500];
+              char buffer[600];
+              char buffer2[1000];
                 sprintf(buffer," BME680 Sensor: %.2f °C, %.2f %%, %.2f hPa, %.2f Ohm\n",
                        values.temperature, values.humidity,
                        values.pressure, values.gas_resistance);
                         pms5003_make_measurement(&pms0, &reading);
-                        pms5003_print_measurement(&reading);       
-esp_mqtt_client_publish(client, "topic/my/timothy/1", buffer, strlen(buffer), 2, false);
+                        pms5003_print_measurement(&reading);
+                        sprintf(buffer2," PM1.0: %d,PM2.5: %d, PM10: %d %s", reading.pm1_0_std, reading.pm2_5_std, reading.pm10_std,buffer);
+
+esp_mqtt_client_publish(client, "topic/my/timothy/1", buffer2, strlen(buffer2), 2, false);
                        }
         }
         // passive waiting until 1 second is over
@@ -319,7 +322,16 @@ void user_init(void)
 {
    readingQueue = xQueueCreate(sizeof(int), 10);
   wifiInit();
+  gettimeofday();
   xTaskCreate(OnConnected, "handel comms", 1024 * 5, NULL, 5, &taskHandle);
   xTaskCreate(generateReading, "handel comms", 1024 * 5, NULL, 5, NULL);
+  
+    
+// while (1){
+
+
+//   printf("%lld\n",esp_timer_get_time());
+//   vTaskDelay(1000/portTICK_RATE_MS)
+// }
 }
 
