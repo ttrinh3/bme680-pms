@@ -1145,6 +1145,9 @@ static bool bme680_get_raw_data(bme680_sensor_t *dev, bme680_raw_data_t* raw_dat
     debug ("Raw data: %d %d %d %d %d",__FUNCTION__,
            raw_data->temperature, raw_data->pressure,
            raw_data->humidity, raw_data->gas_resistance, raw_data->gas_range);
+    // printf ("Raw data: %d %d %d %d %d",
+    //        raw_data->temperature, raw_data->pressure,
+    //        raw_data->humidity, raw_data->gas_resistance, raw_data->gas_range);
 
     return true;
 }
