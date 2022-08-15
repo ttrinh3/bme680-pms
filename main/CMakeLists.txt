@@ -1,2 +1,4 @@
-idf_component_register(SRCS "esp8266_wrapper.c" "bme680_platform.c" "bme680.c" "main.c" "pms5003.c" "getSensorReadings.c"
-                    INCLUDE_DIRS ".")
+# Embed CA, certificate & key directly into binary
+idf_component_register(SRCS "wifi_enterprise_main.c"
+                    INCLUDE_DIRS "."
+                    EMBED_TXTFILES ca.pem client.crt client.key)
