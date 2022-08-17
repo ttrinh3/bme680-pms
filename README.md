@@ -1,7 +1,7 @@
 # Tasks
 ## LoRa
 [ ] Figure out NPT synching\
-[ ] Encrypt sent data with Digital Signature [example](https://github.com/espressif/esp-idf/blob/5b11895700/examples/protocols/mqtt/ssl_ds/README.md)
+[ ] Encrypt sent data with Digital Signature [example](https://github.com/espressif/esp-idf/blob/5b11895700/examples/protocols/mqtt/ssl_ds/README.md)\
 [ ] Learn how it works?
 
 ## ULP
