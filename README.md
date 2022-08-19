@@ -15,4 +15,5 @@
 [ ] ULP has woken up SoC, now use the rest of the sensors to verify fire\
 
 ## Misc
-[ ] Determine whether an EXT wakeup is a viable replacement for ULP wakeup
+[ ] Determine whether an EXT wakeup is a viable replacement for ULP wakeup\
+Looks like it is, at least for logic high. Next, see if you can change the logic so that it must reach a certain level
