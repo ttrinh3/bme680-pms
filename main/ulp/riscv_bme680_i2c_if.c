@@ -6,20 +6,19 @@
  *	License   : Timothy
  *
  *  use actual driver from:
- *  https://github.com/BoschSensortec/BME280_driver
+ *  Timothy
  *
 */
 
 //relative Paths not found in Eclipse / IDF is ok
 //probably doesn't need to be changed for bme680
+//because they are ulp-specific
 #include "ulp_riscv/ulp_riscv.h"
 #include "ulp_riscv/ulp_riscv_utils.h"
 #include "ulp_riscv/ulp_riscv_gpio.h"
 
-//you'll need to find the bme680 equivalents
-// #include "BME280_driver-master/bme280.h"
-// #include "BME280_driver-master/bme280_defs.h"
 //bme680 equivalents
+//https://github.com/BoschSensortec/BME68x-Sensor-API
 #include "BME680_driver-master/bme68x.h"
 #include "BME680_driver-master/bme68x_defs.h"
 /*
@@ -30,9 +29,10 @@
 //internal varibales
 static uint8_t dev_addr;
 static uint8_t first_run = 0;
-// static struct bme280_data bme280_comp_data;
+//OK: properly linked
 static struct bme68x_data bme68x_comp_data; //line 718 of bme68x.defs.h
 //cache wakeup check
+//no need for changes
 static uint32_t mcycle = 0;
 static uint32_t mtemp = 0;
 static uint32_t mhumi = 0;
@@ -46,27 +46,28 @@ static uint32_t mgas = 0;
 uint32_t bme680_humidity;
 uint32_t bme680_temperature;
 uint32_t bme680_pressure;
-uint32_t bme680_gas;
-
+uint32_t bme680_gas;//Added
 uint32_t bme680_status;
 uint32_t bme680_chip_id = 0;
 uint32_t bme680_acquisition_time_ms;
 uint32_t bme680_cycles = 0;
 //set individual from main
-//author means that these are set from the main 
+//these are supposedly set from main, but I don't see the connection
+//line 73? seems to be 1:1 match
 uint32_t bme680_sda = 0;
 uint32_t bme680_scl = 0;
 uint32_t set_bme680_force_wake = 0;
 uint32_t set_bme680_thres_temp = 0;
 uint32_t set_bme680_thres_humi = 0;
 uint32_t set_bme680_thres_pres = 0;
-uint32_t set_bme680_thres_gas = 0;
+uint32_t set_bme680_thres_gas = 0; //don't forget to add this
 
 
 // HW - Initialisierung --------------------------------------------
 
 static void init_gpio() {
 	// Setup GPIO für bitweise I2C
+	//no need for change since these are not sensor-specific
     ulp_riscv_gpio_init(bme680_sda);
     ulp_riscv_gpio_input_enable(bme680_sda);
     ulp_riscv_gpio_set_output_mode(bme680_sda, RTCIO_MODE_OUTPUT_OD);
@@ -85,6 +86,7 @@ static void init_gpio() {
 
 // I2C - Bit & Byte - level ----------------------------------------
 //Grundstellung High -> Input (ext. PullUp) / aktiv Low => Input & Output (fix low)
+//no need to change because they are not sensor specific
 #define SCL_L		ulp_riscv_gpio_output_enable(bme680_scl)
 #define SCL_H		ulp_riscv_gpio_output_disable(bme680_scl)
 #define X_SCL		ulp_riscv_gpio_get_level(bme680_scl)
@@ -135,11 +137,11 @@ static void tx_byte (uint8_t x) {
 }
 
 
-// I2C - adjustment to BME280.h --------------------------------
+// I2C - adjustment to BME680.h --------------------------------
 void user_delay_us(uint32_t period, void *intf_ptr) {
 	ulp_riscv_delay_cycles(period * ULP_RISCV_CYCLES_PER_US);
 }
-
+//not directly affected but pay attention to the parameters passed in
 int8_t bme680_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t len, void *intf_ptr) {
     uint8_t dev_addr = *((uint8_t *)intf_ptr);
 
@@ -184,51 +186,62 @@ int8_t bme680_i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *
 // --------------------------------------------------------------------------------------------
 
 //initialise chip after coldstart or device error
-int8_t bme680_i2c_init(struct bme680_dev *dev) {
-	dev_addr = BME280_I2C_ADDR_PRIM;	//SDO 10k Pulldown on Sensorboard => addr = 0x76
-	dev->intf_ptr = &dev_addr;
-	dev->intf  = BME280_I2C_INTF;
-	dev->read  = bme280_i2c_read;
-	dev->write = bme280_i2c_write;
-	dev->delay_us = user_delay_us;
+int8_t bme680_i2c_init(struct bme68x_dev *dev) {
+	dev_addr = BME68X_I2C_ADDR_LOW;	//SDO 10k Pulldown on Sensorboard => addr = 0x76
+	//for the above, the 680 and 280 have the exact same address
+	//instead of primary and secondary in the 280, 
+	//the 680 has the low and high, but values are the same. 
+	dev->intf_ptr = &dev_addr; //OK makes sense
+	dev->intf  = BME68X_I2C_INTF; //OK makes sense
+	dev->read  = bme680_i2c_read; //this seems like functions that he create and points to
+	dev->write = bme680_i2c_write;//again, this is a self created function (OK)
+	dev->delay_us = user_delay_us;//self created (defined in this file)
 	//safe side -> SW-Reset
-	const uint8_t com_res = BME280_SOFT_RESET_COMMAND;
-	bme280_i2c_write(BME280_RESET_ADDR, &com_res, 1, dev);
+	const uint8_t com_res = BME68X_SOFT_RESET_CMD; //OK makes sense
+	bme280_i2c_write(BME68X_REG_SOFT_RESET, &com_res, 1, dev); //OK makes sense
 	user_delay_us(5*1000, NULL); // > 2ms PowerOn-Reset
 
-	return (bme280_init(dev) << 1);
+	return (bme68x_init(dev) << 1); //OK makes sense
 }
 
 
 
 //perform measurement an readinfg sensor-data
 //duration about 70ms
-int8_t stream_sensor_data_forced_mode(struct bme280_dev *dev) {
+int8_t stream_sensor_data_forced_mode(struct bme68x_dev *dev, struct bme68x_conf *dev2) {
 	//inividaul setting, refer BME280-doc
-	dev->settings.osr_h = BME280_OVERSAMPLING_2X;
-	dev->settings.osr_p = BME280_OVERSAMPLING_8X;
-	dev->settings.osr_t = BME280_OVERSAMPLING_2X;
-	dev->settings.filter = BME280_FILTER_COEFF_OFF;
+	//the bme680 does not have settings lumped in with the dev struct
+	//like the 280, it has another struct for that (bme68x_conf (dev2)), which I have added
+	dev2->os_hum = BME68X_OS_2X; //OK make sense
+	dev2->os_pres = BME68X_OS_8X;//OK make sense
+	dev2->os_temp = BME68X_OS_2X;//OK make sense
+	//even for the bme680, there is no gas OS. that's why it's missing
+	dev2->filter = BME68X_FILTER_OFF;//OK make sense
 
+	//NO 680 equivalent
 	uint8_t settings_sel = BME280_OSR_PRESS_SEL | BME280_OSR_TEMP_SEL | BME280_OSR_HUM_SEL | BME280_FILTER_SEL;
 	//set oversampling und filter
+	//NO 680 equivalent
 	int8_t rslt = bme280_set_sensor_settings(settings_sel, dev);
+	//NO 680 equivalent
 	uint32_t req_delay_ms = bme280_cal_meas_delay(&dev->settings);
 	bme280_acquisition_time_ms = req_delay_ms;
 	//initiate measurement in force-mode (inividual)
-	rslt |= bme280_set_sensor_mode(BME280_FORCED_MODE, dev);
+	// rslt |= bme280_set_sensor_mode(BME68X_FORCED_MODE, dev);
+	//Seems to be the proper replacement
+	bme68x_set_op_mode(BME68X_FORCED_MODE, dev); //dev is the non-settings one, so it's correct
 	//wait for complete plus safty
-	dev->delay_us((req_delay_ms + 5) * 1000, dev->intf_ptr);
+	dev->delay_us((req_delay_ms + 5) * 1000, dev->intf_ptr); //Possibly OK
 
-	rslt |= bme280_get_sensor_data(BME280_ALL, &bme280_comp_data, dev);
-	rslt |= bme280_set_sensor_mode(BME280_SLEEP_MODE, dev);
+	rslt |= bme68x_get_data(BME280_ALL, &bme280_comp_data, dev);
+	rslt |= bme68x_set_op_mode(BME280_SLEEP_MODE, dev);
 
 	return (rslt << 2);
 }
 
 
 int main (void) {
-	bme280_cycles++;
+	bme680_cycles++;
 	init_gpio();
 	int8_t rslt = 0;
 	struct bme280_dev bme280_device;

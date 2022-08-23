@@ -16,6 +16,7 @@
 #define TEMP_THRESHOLD		0.25	//delta °C
 #define HUMI_THRESHOLD		2		//delta %
 #define PRES_THRESHOLD		2		//delta hPa
+#define GAS_THRESHOLD       2       //delta Ohm 
 #define MAX_FORCE_REPORT	0		//at least after x ulp-loops / 0 => every time
 
 //individual RTC-IO 1..21
@@ -74,6 +75,7 @@ void app_main(void) {
     	ulp_set_bme280_thres_temp = TEMP_THRESHOLD * 100;
     	ulp_set_bme280_thres_humi = HUMI_THRESHOLD * 1000;
     	ulp_set_bme280_thres_pres = PRES_THRESHOLD * 100;
+		ulp_set_bme280_thres_gas = GAS_THRESHOLD * 100;
     	ulp_bme280_sda = I2C_MASTER_SDA_IO;
     	ulp_bme280_scl = I2C_MASTER_SCL_IO;
 

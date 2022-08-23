@@ -10,5 +10,8 @@
     ],
     "idf.portWin": "COM3",
     "idf.pythonBinPathWin": "C:\\Users\\Timot\\esp\\tools\\python_env\\idf5.1_py3.8_env\\Scripts\\python.exe",
-    "idf.toolsPathWin": "C:\\Users\\Timot\\esp\\tools"
+    "idf.toolsPathWin": "C:\\Users\\Timot\\esp\\tools",
+    "files.associations": {
+        "bme68x_defs.h": "c"
+    }
 }
