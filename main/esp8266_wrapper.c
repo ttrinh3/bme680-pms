@@ -7,8 +7,7 @@
 #include <sys/time.h>
 #include <string.h>
 
-#include "driver/spi_master.h"
-#include "driver/spi_common.h"
+
 
 #include "driver/i2c.h"
 #include "driver/gpio.h"
