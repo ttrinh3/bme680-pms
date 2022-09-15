@@ -10,5 +10,18 @@
     ],
     "idf.portWin": "COM3",
     "idf.pythonBinPathWin": "C:\\Users\\Timot\\esp\\tools\\python_env\\idf4.4_py3.8_env\\Scripts\\python.exe",
-    "idf.toolsPathWin": "C:\\Users\\Timot\\esp\\tools"
+    "idf.toolsPathWin": "C:\\Users\\Timot\\esp\\tools",
+    "files.associations": {
+        "esp8266_wrapper.h": "c",
+        "gpio.h": "c",
+        "*.ipp": "c",
+        "*.tcc": "c",
+        "*.inc": "c",
+        "spi_master.h": "c",
+        "i2c.h": "c",
+        "i2cdev.h": "c",
+        "bme68x-idf.h": "c",
+        "freertos.h": "c"
+    },
+    "idf.flashType": "UART"
 }
