@@ -142,7 +142,7 @@ void MQTTLogic(int sensorReading)
 
         // Changes the oversampling rates to 4x oversampling for temperature
         // and 2x oversampling for humidity. Pressure measurement is skipped.
-        bme680_set_oversampling_rates(sensor, osr_4x, osr_none, osr_2x);
+        bme680_set_oversampling_rates(sensor, osr_4x, osr_2x, osr_2x);
 
         // Change the IIR filter size for temperature and pressure to 7.
         bme680_set_filter_size(sensor, iir_size_7);

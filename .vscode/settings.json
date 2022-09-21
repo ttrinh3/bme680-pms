@@ -10,5 +10,9 @@
     ],
     "idf.portWin": "COM3",
     "idf.pythonBinPathWin": "C:\\Users\\Timot\\esp\\tools\\python_env\\idf4.4_py3.8_env\\Scripts\\python.exe",
-    "idf.toolsPathWin": "C:\\Users\\Timot\\esp\\tools"
+    "idf.toolsPathWin": "C:\\Users\\Timot\\esp\\tools",
+    "files.associations": {
+        "system_error": "c",
+        "chrono": "c"
+    }
 }
