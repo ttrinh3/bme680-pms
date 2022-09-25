@@ -233,9 +233,7 @@ void app_main(void)
     setenv("TZ", "EST5EDT,M3.2.0/2,M11.1.0", 1);
     tzset();
     localtime_r(&now, &timeinfo);
-    strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
-    ESP_LOGI("", "The current date/time in New York is: %s", strftime_buf);
-     
+    strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);    
 			char buffer2[600];
       char buffer3[1000];
       com_rslt = bme280_read_uncomp_pressure_temperature_humidity(
