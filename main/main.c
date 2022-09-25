@@ -229,8 +229,8 @@ void app_main(void)
         time(&now);
     }
     char strftime_buf[64];
-    // Set timezone to Eastern Standard Time and print local time
-    setenv("TZ", "EST5EDT,M3.2.0/2,M11.1.0", 1);
+    // Set timezone to Pacific Standard Time and print local time
+    setenv("TZ", "PST8PDT,M3.2.0/2,M11.1.0", 1);
     tzset();
     localtime_r(&now, &timeinfo);
     strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);    
