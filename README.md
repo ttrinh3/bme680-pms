@@ -1,3 +1,8 @@
+dont' foget the extra dirs in the cmakelist.txt
+
+
+
+
 Grab the official esp-idf. Copy and paste into your project directory (or any other that you wish)
 and also copy and paste a vscode folder from another project (probably an example project to be safe)
 
