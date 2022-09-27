@@ -1,4 +1,4 @@
-#define bme280123 //comment out for bme680
+#define bme280123 //COMMENT OUT for bme680. DEFINE for 280
 #include "driver/gpio.h"
 #include "driver/i2c.h"
 #include "esp_err.h"
