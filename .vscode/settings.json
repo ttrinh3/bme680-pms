@@ -17,6 +17,7 @@
         "esp_err.h": "c",
         "*.inc": "c",
         "esp_sntp.h": "c",
-        "esp_netif.h": "c"
+        "esp_netif.h": "c",
+        "esp_attr.h": "c"
     }
 }

@@ -1,3 +1,4 @@
+#define bme280123 //comment out for bme680
 #include "driver/gpio.h"
 #include "driver/i2c.h"
 #include "esp_err.h"
@@ -44,16 +45,25 @@
 #include "esp_sleep.h"
 #include "nvs_flash.h"
 
+//280 pins def
 #define SDA_PIN 8
 #define SCL_PIN 9
+
+
+
 #define uart_set_baud(p,r)  uart_set_baudrate (p,r)
 
 #define TAG_BME280 "BME280"
 
 #define I2C_MASTER_ACK 0
 #define I2C_MASTER_NACK 1
+#define I2C_BUS       0
+// 680 pins def
+#define I2C_SDA_PIN   19
+#define I2C_SCL_PIN   20
 
-#define bme280123 //comment out for bme680
+#define I2C_FREQ      I2C_FREQ_100K
+
 #define TAG1 "MQTT"
 #define TAG2 "SNTP"
 
@@ -214,40 +224,99 @@ void app_main(void)
     com_rslt += bme280_set_standby_durn(BME280_STANDBY_TIME_1_MS);
     com_rslt += bme280_set_filter(BME280_FILTER_COEFF_16);
     com_rslt += bme280_set_power_mode(BME280_NORMAL_MODE);   
-	if (com_rslt == SUCCESS) {
 
-		while(true) {
-    // time stuff  
-      vTaskDelay(1000/portTICK_PERIOD_MS);
-			char Time[64];
+    pms5003_config_t pms0 = {
+            .set_pin = GPIO_NUM_13,
+            .reset_pin = GPIO_NUM_27,
+            .mode_pin = GPIO_NUM_26,
+            .rxd_pin = GPIO_NUM_14,
+            .txd_pin = GPIO_NUM_15,
+            .uart_instance = UART_NUM_1,
+            .uart_buffer_size = 128
+    };
+    pms5003_setup(&pms0);
+    pms5003_measurement_t reading;
+	  if (com_rslt == SUCCESS) { //possibly eliminate
+      while(true) {
+        // time stuff  
+          vTaskDelay(1000/portTICK_PERIOD_MS);
+        time(&now);
+        localtime_r(&now, &timeinfo);
+        if (timeinfo.tm_year < (2016 - 1900)) {
+            obtain_time();
+            // update 'now' variable with current time
+            time(&now);
+        }
+        char strftime_buf[64];
+        setenv("TZ", "PST8PDT,M3.2.0/2,M11.1.0", 1);tzset();localtime_r(&now, &timeinfo);strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);    
+        char buffer2[600];
+        char buffer3[1000];
+        com_rslt = bme280_read_uncomp_pressure_temperature_humidity(
+        &v_uncomp_pressure_s32, &v_uncomp_temperature_s32, &v_uncomp_humidity_s32);
+        pms5003_make_measurement(&pms0, &reading);
+        // fieldnames = ["PM1", "PM2", "PM3", "Temp", "Humid", "Press", "Resist", "Time"]
+        if (com_rslt == SUCCESS) {
+          printf("%d, %d, %d, %.2f,%.3f,%.3f,%.3f, %s \n", reading.pm1_0_std,reading.pm2_5_std,reading.pm10_std,
+          bme280_compensate_temperature_double(v_uncomp_temperature_s32), bme280_compensate_humidity_double(v_uncomp_humidity_s32),
+          bme280_compensate_pressure_double(v_uncomp_pressure_s32)/100,bme280_compensate_temperature_double(v_uncomp_temperature_s32) ,strftime_buf);
+          //added a duplicate temperature to take the place of temperature
+          // sprintf(buffer3,"%s,%d,%d,%d,%s","Node1", 123, 123, 123, buffer2);
+          // printf("Sensors Generated: %s\n", buffer3);
+        } 
+      }
+	}
+  #else
+  bme680_sensor_t* sensor = 0;
+  time_t now;
+  struct tm timeinfo;
+  i2c_init(I2C_BUS, I2C_SCL_PIN, I2C_SDA_PIN, I2C_FREQ);
+  sensor = bme680_init_sensor (I2C_BUS, BME680_I2C_ADDRESS_2, 0);
+  bme680_set_oversampling_rates(sensor, osr_4x, osr_2x, osr_2x);
+  bme680_set_filter_size(sensor, iir_size_7);
+  bme680_set_heater_profile (sensor, 0, 200, 100);
+  bme680_use_heater_profile (sensor, 0);
+  bme680_set_ambient_temperature (sensor, 25);
+  bme680_values_float_t values;
+  TickType_t last_wakeup = xTaskGetTickCount();
+  uint32_t duration = bme680_get_measurement_duration(sensor);
+  pms5003_measurement_t reading;
+  pms5003_config_t pms0 = {
+              .set_pin = GPIO_NUM_13,
+              .reset_pin = GPIO_NUM_27,
+              .mode_pin = GPIO_NUM_26,
+              .rxd_pin = GPIO_NUM_14,
+              .txd_pin = GPIO_NUM_15,
+              .uart_instance = UART_NUM_1,
+              .uart_buffer_size = 128
+      };
+  pms5003_setup(&pms0);
 
+  while (1){
+    // fieldnames = ["PM1", "PM2", "PM3", "Temp", "Humid", "Press", "Resist", "Time"]
     time(&now);
     localtime_r(&now, &timeinfo);
     if (timeinfo.tm_year < (2016 - 1900)) {
-        obtain_time();
-        // update 'now' variable with current time
-        time(&now);
+      obtain_time();
+      // update 'now' variable with current time
+      time(&now);
     }
     char strftime_buf[64];
-    // Set timezone to Pacific Standard Time and print local time
-    setenv("TZ", "PST8PDT,M3.2.0/2,M11.1.0", 1);
-    tzset();
-    localtime_r(&now, &timeinfo);
-    strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);    
-			char buffer2[600];
-      char buffer3[1000];
-      com_rslt = bme280_read_uncomp_pressure_temperature_humidity(
-      &v_uncomp_pressure_s32, &v_uncomp_temperature_s32, &v_uncomp_humidity_s32);
+    setenv("TZ", "PST8PDT,M3.2.0/2,M11.1.0", 1);tzset();localtime_r(&now, &timeinfo);strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+    if (bme680_force_measurement(sensor)){
+      pms5003_make_measurement(&pms0, &reading);
+      vTaskDelay (duration);
+      if (bme680_get_results_float (sensor, &values)){
+        printf("%d, %d, %d, %.2f °C, %.2f %%, %.2f hPa, %.2f Ohm, %s\n",
+        reading.pm1_0_std, reading.pm2_5_std, reading.pm10_std, 
+        values.temperature, values.humidity, values.pressure, values.gas_resistance, strftime_buf);
 
-			if (com_rslt == SUCCESS) {
-				printf("%s %.2f,%.3f,%.3f\n", strftime_buf,
-					bme280_compensate_temperature_double(v_uncomp_temperature_s32), bme280_compensate_humidity_double(v_uncomp_humidity_s32),
-					bme280_compensate_pressure_double(v_uncomp_pressure_s32)/100);
+      }
 
-          // sprintf(buffer3,"%s,%d,%d,%d,%s","Node1", 123, 123, 123, buffer2);
-          // printf("Sensors Generated: %s\n", buffer3);
-			} 
-		}
-	} 
+    }
+
+
+  }
+
+
 #endif
 }
