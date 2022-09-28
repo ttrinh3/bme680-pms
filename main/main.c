@@ -141,128 +141,23 @@ void BME280_delay_msek(u32 msek)
 	vTaskDelay(msek/portTICK_PERIOD_MS);
 }
 
-static void obtain_time(void);
-static void initialize_sntp(void);
 
-static void obtain_time(void)
-{
-    ESP_ERROR_CHECK( nvs_flash_init() );
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK( esp_event_loop_create_default() );
 
-    /**
-     * NTP server address could be aquired via DHCP,
-     * see LWIP_DHCP_GET_NTP_SRV menuconfig option
-     */
-#ifdef LWIP_DHCP_GET_NTP_SRV
-    sntp_servermode_dhcp(1);
-#endif
 
-    /* This helper function configures Wi-Fi or Ethernet, as selected in menuconfig.
-     * Read "Establishing Wi-Fi or Ethernet Connection" section in
-     * examples/protocols/README.md for more information about this function.
-     */
-    ESP_ERROR_CHECK(example_connect());
 
-    initialize_sntp();
 
-    // wait for time to be set
-    time_t now = 0;
-    struct tm timeinfo = { 0 };
-    int retry = 0;
-    const int retry_count = 10;
-    while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && ++retry < retry_count) {
-        ESP_LOGI("", "Waiting for system time to be set... (%d/%d)", retry, retry_count);
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
-    }
-    time(&now);
-    localtime_r(&now, &timeinfo);
-
-    ESP_ERROR_CHECK( example_disconnect() );
-}
-
-void time_sync_notification_cb(struct timeval *tv)
-{
-    ESP_LOGI("", "Notification of a time synchronization event");
-}
-
-static void initialize_sntp(void)
-{
-    ESP_LOGI("", "Initializing SNTP");
-    sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    sntp_setservername(0, "pool.ntp.org");
-    sntp_set_time_sync_notification_cb(time_sync_notification_cb);
-    sntp_init();
-}
 
 void app_main(void)
 {
-  // fieldnames = ["PM1", "PM2", "PM3", "Temp", "Humid", "Press", "Resist", "Time"]
+  time_t now;
+char strftime_buf[64];
+struct tm timeinfo;
+setenv("TZ", "CST", 1);
+tzset();
+    //call these whenever you need time
 
-  #ifdef bme280123
+    
 
-    time_t now;
-    struct tm timeinfo;
-    i2c_master_init(); 
-    struct bme280_t bme280 = {
-      .bus_write = BME280_I2C_bus_write,
-      .bus_read = BME280_I2C_bus_read,
-      .dev_addr = BME280_I2C_ADDRESS2,
-      .delay_msec = BME280_delay_msek
-    };
-    s32 com_rslt;
-    s32 v_uncomp_pressure_s32;
-    s32 v_uncomp_temperature_s32;
-    s32 v_uncomp_humidity_s32;
-    com_rslt = bme280_init(&bme280);
-    com_rslt += bme280_set_oversamp_pressure(BME280_OVERSAMP_16X);
-    com_rslt += bme280_set_oversamp_temperature(BME280_OVERSAMP_2X);
-    com_rslt += bme280_set_oversamp_humidity(BME280_OVERSAMP_1X);
-    com_rslt += bme280_set_standby_durn(BME280_STANDBY_TIME_1_MS);
-    com_rslt += bme280_set_filter(BME280_FILTER_COEFF_16);
-    com_rslt += bme280_set_power_mode(BME280_NORMAL_MODE);   
-
-    pms5003_config_t pms0 = {
-            .set_pin = GPIO_NUM_13,
-            .reset_pin = GPIO_NUM_27,
-            .mode_pin = GPIO_NUM_26,
-            .rxd_pin = GPIO_NUM_14,
-            .txd_pin = GPIO_NUM_15,
-            .uart_instance = UART_NUM_1,
-            .uart_buffer_size = 128
-    };
-    pms5003_setup(&pms0);
-    pms5003_measurement_t reading;
-	  if (com_rslt == SUCCESS) { //possibly eliminate
-      while(true) {
-        // time stuff  
-          vTaskDelay(1000/portTICK_PERIOD_MS);
-        time(&now);
-        localtime_r(&now, &timeinfo);
-        if (timeinfo.tm_year < (2016 - 1900)) {
-            obtain_time();
-            // update 'now' variable with current time
-            time(&now);
-        }
-        char strftime_buf[64];
-        setenv("TZ", "PST8PDT,M3.2.0/2,M11.1.0", 1);tzset();localtime_r(&now, &timeinfo);strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);    
-        char buffer2[600];
-        char buffer3[1000];
-        com_rslt = bme280_read_uncomp_pressure_temperature_humidity(
-        &v_uncomp_pressure_s32, &v_uncomp_temperature_s32, &v_uncomp_humidity_s32);
-        pms5003_make_measurement(&pms0, &reading);
-        // fieldnames = ["PM1", "PM2", "PM3", "Temp", "Humid", "Press", "Resist", "Time"]
-        if (com_rslt == SUCCESS) {
-          printf("%d, %d, %d, %.2f,%.3f,%.3f,%.3f, %s \n", reading.pm1_0_std,reading.pm2_5_std,reading.pm10_std,
-          bme280_compensate_temperature_double(v_uncomp_temperature_s32), bme280_compensate_humidity_double(v_uncomp_humidity_s32),
-          bme280_compensate_pressure_double(v_uncomp_pressure_s32)/100,bme280_compensate_temperature_double(v_uncomp_temperature_s32) ,strftime_buf);
-          // added a duplicate temperature to take the place of temperature
-          // sprintf(buffer3,"%s,%d,%d,%d,%s","Node1", 123, 123, 123, buffer2);
-          // printf("Sensors Generated: %s\n", buffer3);
-        } 
-      }
-	}
-  #else /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //280 stuff
   i2c_master_init(); 
     struct bme280_t bme280 = {
@@ -309,6 +204,10 @@ void app_main(void)
     // fieldnames = ["PM1", "PM2", "PM3", "Temp", "Humid", "Press", "Resist", "Time"]
     
     vTaskDelay(1000/portTICK_RATE_MS);
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+
     
     if (bme680_force_measurement(sensor)){
       pms5003_make_measurement(&pms0, &reading);
@@ -317,15 +216,14 @@ void app_main(void)
       &v_uncomp_pressure_s32, &v_uncomp_temperature_s32, &v_uncomp_humidity_s32);
       vTaskDelay (duration);
       if (bme680_get_results_float (sensor, &values)){
-        printf("%d, %d, %d, %.2f °C, %.2f %%, %.2f hPa, %.2f Ohm,%.2f,%.3f,%.3f\n",
+        printf("Lebron,%d, %d, %d, %.2f , %.2f , %.2f , %.2f ,%.2f,%.3f,%.3f, %s\n",
         reading.pm1_0_std, reading.pm2_5_std, reading.pm10_std, 
         values.temperature, values.humidity, values.pressure, values.gas_resistance, bme280_compensate_temperature_double(v_uncomp_temperature_s32), bme280_compensate_humidity_double(v_uncomp_humidity_s32),
-          bme280_compensate_pressure_double(v_uncomp_pressure_s32)/100);
+          bme280_compensate_pressure_double(v_uncomp_pressure_s32)/100,strftime_buf);
       }
 
     }
   }
-  #endif
 }  
 
 
