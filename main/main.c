@@ -16,6 +16,7 @@
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
 #include "connect.h"
+#include "lora.h"
 //#include "esp_event_loop.h"
 #include "esp_event.h"
 #include "esp_wifi.h"
@@ -63,6 +64,7 @@
 
 #define TAG1 "MQTT"
 #define TAG2 "SNTP"
+
 
 
 void i2c_master_init()
@@ -149,17 +151,63 @@ void BME280_delay_msek(u32 msek)
 
 void app_main(void)
 {
+  printf("hi5\n");
+  //init lora
+  if (lora_init() == 0) {
+    while(1) {
+      ESP_LOGE(pcTaskGetName(NULL), "Does NO WORK not recognize the module");
+      vTaskDelay(1);
+    }
+	}
   time_t now;
-char strftime_buf[64];
-struct tm timeinfo;
-setenv("TZ", "CST", 1);
-tzset();
-    //call these whenever you need time
+  char strftime_buf[64];
+  struct tm timeinfo;
+  setenv("TZ", "CST", 1);
+  tzset();
+  printf("hi6\n");
+  //Lora radio stuff. we might not need this cause we'll just use 915
+  #if CONFIG_169MHZ
+    ESP_LOGI(pcTaskGetName(NULL), "Frequency is 169MHz");
+    lora_set_frequency(169e6); // 169MHz
+  #elif CONFIG_433MHZ
+    ESP_LOGI(pcTaskGetName(NULL), "Frequency is 433MHz");
+    lora_set_frequency(433e6); // 433MHz
+  #elif CONFIG_470MHZ
+    ESP_LOGI(pcTaskGetName(NULL), "Frequency is 470MHz");
+    lora_set_frequency(470e6); // 470MHz
+  #elif CONFIG_866MHZ
+    ESP_LOGI(pcTaskGetName(NULL), "Frequency is 866MHz");
+    lora_set_frequency(866e6); // 866MHz
+  #elif CONFIG_915MHZ
+    ESP_LOGI(pcTaskGetName(NULL), "Frequency is 915MHz");
+    lora_set_frequency(915e6); // 915MHz
+  #elif CONFIG_OTHER
+    ESP_LOGI(pcTaskGetName(NULL), "Frequency is %dMHz", CONFIG_OTHER_FREQUENCY);
+    long frequency = CONFIG_OTHER_FREQUENCY * 1000000;
+    lora_set_frequency(frequency);
+  #endif
+
+  int cr = 1;
+	int bw = 7;
+	int sf = 7;
+  #if CONFIF_ADVANCED
+    cr = CONFIG_CODING_RATE
+    bw = CONFIG_BANDWIDTH;
+    sf = CONFIG_SF_RATE;
+  #endif
+  lora_set_coding_rate(cr);
+	ESP_LOGI(pcTaskGetName(NULL), "coding_rate=%d", cr);
+	lora_set_bandwidth(bw);
+	ESP_LOGI(pcTaskGetName(NULL), "bandwidth=%d", bw);
+	lora_set_spreading_factor(sf);
+	ESP_LOGI(pcTaskGetName(NULL), "spreading_factor=%d", sf);
+
 
     
 
   //280 stuff
   i2c_master_init(); 
+  printf("280 i2c init\n");
     struct bme280_t bme280 = {
       .bus_write = BME280_I2C_bus_write,
       .bus_read = BME280_I2C_bus_read,
@@ -167,9 +215,9 @@ tzset();
       .delay_msec = BME280_delay_msek
     };
   s32 com_rslt;
-  s32 v_uncomp_pressure_s32;
-  s32 v_uncomp_temperature_s32;
-  s32 v_uncomp_humidity_s32;
+  s32 v_uncomp_pressure_s32=0;
+  s32 v_uncomp_temperature_s32=0;
+  s32 v_uncomp_humidity_s32=0;
   com_rslt = bme280_init(&bme280);
   com_rslt += bme280_set_oversamp_pressure(BME280_OVERSAMP_16X);
   com_rslt += bme280_set_oversamp_temperature(BME280_OVERSAMP_2X);
@@ -179,8 +227,11 @@ tzset();
   com_rslt += bme280_set_power_mode(BME280_NORMAL_MODE);
   //680 stuff
   bme680_sensor_t* sensor = 0;
+        printf("before 680 i2c init\n");
   i2c_init(0, I2C_SCL_PIN, I2C_SDA_PIN, I2C_FREQ);
+  printf("i2c init of 680\n");
   sensor = bme680_init_sensor (I2C_BUS, BME680_I2C_ADDRESS_2, 0);
+      printf("bme680 sensor init\n");
   bme680_set_oversampling_rates(sensor, osr_4x, osr_2x, osr_2x);
   bme680_set_filter_size(sensor, iir_size_7);
   bme680_set_heater_profile (sensor, 0, 200, 100);
@@ -188,7 +239,8 @@ tzset();
   bme680_set_ambient_temperature (sensor, 25);
   bme680_values_float_t values;
   uint32_t duration = bme680_get_measurement_duration(sensor);
-  pms5003_measurement_t reading;
+        printf("duration: %d\n", duration);
+  pms5003_measurement_t reading = {0};
   pms5003_config_t pms0 = {
               .set_pin = GPIO_NUM_13,
               .reset_pin = GPIO_NUM_27,
@@ -199,29 +251,52 @@ tzset();
               .uart_buffer_size = 128
       };
   pms5003_setup(&pms0);
+    printf("pms setup\n");
   
+	uint8_t buf[256]; // Maximum Payload size of SX1276/77/78/79 is 255
+  char sensor_data[256];
   while (1){
     // fieldnames = ["PM1", "PM2", "PM3", "Temp", "Humid", "Press", "Resist", "Time"]
-    
+
     vTaskDelay(1000/portTICK_RATE_MS);
     time(&now);
     localtime_r(&now, &timeinfo);
     strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
-
+  printf("forcing 680 measurement\n");
     
     if (bme680_force_measurement(sensor)){
+            printf("getting pms measurement\n");
       pms5003_make_measurement(&pms0, &reading);
-
+      printf("hi4\n");
+      printf("getting 280 data\n");
       bme280_read_uncomp_pressure_temperature_humidity(
       &v_uncomp_pressure_s32, &v_uncomp_temperature_s32, &v_uncomp_humidity_s32);
+
       vTaskDelay (duration);
       if (bme680_get_results_float (sensor, &values)){
+
         printf("Lebron,%d, %d, %d, %.2f , %.2f , %.2f , %.2f ,%.2f,%.3f,%.3f, %s\n",
         reading.pm1_0_std, reading.pm2_5_std, reading.pm10_std, 
         values.temperature, values.humidity, values.pressure, values.gas_resistance, bme280_compensate_temperature_double(v_uncomp_temperature_s32), bme280_compensate_humidity_double(v_uncomp_humidity_s32),
+        bme280_compensate_pressure_double(v_uncomp_pressure_s32)/100,strftime_buf);
+
+         sprintf(sensor_data,"Lebron,%d, %d, %d, %.2f , %.2f , %.2f , %.2f ,%.2f,%.3f,%.3f, %s\n",
+          reading.pm1_0_std, reading.pm2_5_std, reading.pm10_std, 
+          values.temperature, values.humidity, values.pressure, values.gas_resistance,
+          bme280_compensate_temperature_double(v_uncomp_temperature_s32), 
+          bme280_compensate_humidity_double(v_uncomp_humidity_s32),
           bme280_compensate_pressure_double(v_uncomp_pressure_s32)/100,strftime_buf);
+        int send_data = sprintf((char *)buf,"%s",sensor_data);
+        lora_send_packet(buf,send_data);
+
+      }
+      else{
+        printf("Error with get results float 680\n");
       }
 
+    }
+    else {
+      printf("Error with force_measurement 680\n");
     }
   }
 }  

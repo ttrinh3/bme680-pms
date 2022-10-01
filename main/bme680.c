@@ -50,7 +50,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-
+#include <stdio.h>
 #include "bme680_platform.h"
 #include "bme680.h"
 
