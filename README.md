@@ -1,4 +1,3 @@
-[ ] add pms\
-[ ] add bme680\
-[ ] add lora\
-[ ] test the switch
+[x] add pms\
+[x] add bme680\
+[x] add lora
