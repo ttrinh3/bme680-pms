@@ -28,7 +28,6 @@
 #include "esp_system.h"
 #include "esp_attr.h"
 #include "esp_sleep.h"
-#include "C:\Users\Timot\esp\esp-idf\examples\common_components\protocol_examples_common\include\protocol_examples_common.h"
 #include "esp_sntp.h"
 #include <string.h>
 #include <time.h>
@@ -43,181 +42,175 @@
 #include "esp_sleep.h"
 #include "nvs_flash.h"
 
-//280 pins def
+// 280 pins def
 #define SDA_PIN 8
 #define SCL_PIN 9
 
-
-
-#define uart_set_baud(p,r)  uart_set_baudrate (p,r)
+#define uart_set_baud(p, r) uart_set_baudrate(p, r)
 
 #define TAG_BME280 "BME280"
 
 #define I2C_MASTER_ACK 0
 #define I2C_MASTER_NACK 1
-#define I2C_BUS       0
+#define I2C_BUS 0
 // 680 pins def
-#define I2C_SDA_PIN   19
-#define I2C_SCL_PIN   20
+#define I2C_SDA_PIN 19
+#define I2C_SCL_PIN 20
 #define i2c_280 1
-#define I2C_FREQ      I2C_FREQ_100K
+#define I2C_FREQ I2C_FREQ_100K
 
 #define TAG1 "MQTT"
 #define TAG2 "SNTP"
 
-
-
 void i2c_master_init()
 {
-	i2c_config_t i2c_config = {
-		.mode = I2C_MODE_MASTER,
-		.sda_io_num = SDA_PIN,
-		.scl_io_num = SCL_PIN,
-		.sda_pullup_en = GPIO_PULLUP_ENABLE,
-		.scl_pullup_en = GPIO_PULLUP_ENABLE,
-		.master.clk_speed = 1000000
-	};
-	i2c_param_config(i2c_280, &i2c_config);
-	i2c_driver_install(i2c_280, I2C_MODE_MASTER, 0, 0, 0);
+  i2c_config_t i2c_config = {
+      .mode = I2C_MODE_MASTER,
+      .sda_io_num = SDA_PIN,
+      .scl_io_num = SCL_PIN,
+      .sda_pullup_en = GPIO_PULLUP_ENABLE,
+      .scl_pullup_en = GPIO_PULLUP_ENABLE,
+      .master.clk_speed = 1000000};
+  i2c_param_config(i2c_280, &i2c_config);
+  i2c_driver_install(i2c_280, I2C_MODE_MASTER, 0, 0, 0);
 }
 
 s8 BME280_I2C_bus_write(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 cnt)
 {
-	s32 iError = BME280_INIT_VALUE;
+  s32 iError = BME280_INIT_VALUE;
 
-	esp_err_t espRc;
-	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+  esp_err_t espRc;
+  i2c_cmd_handle_t cmd = i2c_cmd_link_create();
 
-	i2c_master_start(cmd);
-	i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
 
-	i2c_master_write_byte(cmd, reg_addr, true);
-	i2c_master_write(cmd, reg_data, cnt, true);
-	i2c_master_stop(cmd);
+  i2c_master_write_byte(cmd, reg_addr, true);
+  i2c_master_write(cmd, reg_data, cnt, true);
+  i2c_master_stop(cmd);
 
-	espRc = i2c_master_cmd_begin(i2c_280, cmd, 10/portTICK_PERIOD_MS);
-	if (espRc == ESP_OK) {
-		iError = SUCCESS;
-	} else {
-		iError = FAIL;
-	}
-	i2c_cmd_link_delete(cmd);
+  espRc = i2c_master_cmd_begin(i2c_280, cmd, 10 / portTICK_PERIOD_MS);
+  if (espRc == ESP_OK)
+  {
+    iError = SUCCESS;
+  }
+  else
+  {
+    iError = FAIL;
+  }
+  i2c_cmd_link_delete(cmd);
 
-	return (s8)iError;
+  return (s8)iError;
 }
 
 s8 BME280_I2C_bus_read(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 cnt)
 {
-	s32 iError = BME280_INIT_VALUE;
-	esp_err_t espRc;
+  s32 iError = BME280_INIT_VALUE;
+  esp_err_t espRc;
 
-	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+  i2c_cmd_handle_t cmd = i2c_cmd_link_create();
 
-	i2c_master_start(cmd);
-	i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
-	i2c_master_write_byte(cmd, reg_addr, true);
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+  i2c_master_write_byte(cmd, reg_addr, true);
 
-	i2c_master_start(cmd);
-	i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, true);
 
-	if (cnt > 1) {
-		i2c_master_read(cmd, reg_data, cnt-1, I2C_MASTER_ACK);
-	}
-	i2c_master_read_byte(cmd, reg_data+cnt-1, I2C_MASTER_NACK);
-	i2c_master_stop(cmd);
+  if (cnt > 1)
+  {
+    i2c_master_read(cmd, reg_data, cnt - 1, I2C_MASTER_ACK);
+  }
+  i2c_master_read_byte(cmd, reg_data + cnt - 1, I2C_MASTER_NACK);
+  i2c_master_stop(cmd);
 
-	espRc = i2c_master_cmd_begin(i2c_280, cmd, 10/portTICK_PERIOD_MS);
-	if (espRc == ESP_OK) {
-		iError = SUCCESS;
-	} else {
-		iError = FAIL;
-	}
+  espRc = i2c_master_cmd_begin(i2c_280, cmd, 10 / portTICK_PERIOD_MS);
+  if (espRc == ESP_OK)
+  {
+    iError = SUCCESS;
+  }
+  else
+  {
+    iError = FAIL;
+  }
 
-	i2c_cmd_link_delete(cmd);
+  i2c_cmd_link_delete(cmd);
 
-	return (s8)iError;
+  return (s8)iError;
 }
 
 void BME280_delay_msek(u32 msek)
 {
-	vTaskDelay(msek/portTICK_PERIOD_MS);
+  vTaskDelay(msek / portTICK_PERIOD_MS);
 }
-
-
-
-
-
-
 
 void app_main(void)
 {
   printf("hi5\n");
-  //init lora
-  if (lora_init() == 0) {
-    while(1) {
+  // init lora
+  if (lora_init() == 0)
+  {
+    while (1)
+    {
       ESP_LOGE(pcTaskGetName(NULL), "Does NO WORK not recognize the module");
       vTaskDelay(1);
     }
-	}
+  }
   time_t now;
   char strftime_buf[64];
   struct tm timeinfo;
   setenv("TZ", "CST", 1);
   tzset();
   printf("hi6\n");
-  //Lora radio stuff. we might not need this cause we'll just use 915
-  #if CONFIG_169MHZ
-    ESP_LOGI(pcTaskGetName(NULL), "Frequency is 169MHz");
-    lora_set_frequency(169e6); // 169MHz
-  #elif CONFIG_433MHZ
-    ESP_LOGI(pcTaskGetName(NULL), "Frequency is 433MHz");
-    lora_set_frequency(433e6); // 433MHz
-  #elif CONFIG_470MHZ
-    ESP_LOGI(pcTaskGetName(NULL), "Frequency is 470MHz");
-    lora_set_frequency(470e6); // 470MHz
-  #elif CONFIG_866MHZ
-    ESP_LOGI(pcTaskGetName(NULL), "Frequency is 866MHz");
-    lora_set_frequency(866e6); // 866MHz
-  #elif CONFIG_915MHZ
-    ESP_LOGI(pcTaskGetName(NULL), "Frequency is 915MHz");
-    lora_set_frequency(915e6); // 915MHz
-  #elif CONFIG_OTHER
-    ESP_LOGI(pcTaskGetName(NULL), "Frequency is %dMHz", CONFIG_OTHER_FREQUENCY);
-    long frequency = CONFIG_OTHER_FREQUENCY * 1000000;
-    lora_set_frequency(frequency);
-  #endif
+// Lora radio stuff. we might not need this cause we'll just use 915
+#if CONFIG_169MHZ
+  ESP_LOGI(pcTaskGetName(NULL), "Frequency is 169MHz");
+  lora_set_frequency(169e6); // 169MHz
+#elif CONFIG_433MHZ
+  ESP_LOGI(pcTaskGetName(NULL), "Frequency is 433MHz");
+  lora_set_frequency(433e6); // 433MHz
+#elif CONFIG_470MHZ
+  ESP_LOGI(pcTaskGetName(NULL), "Frequency is 470MHz");
+  lora_set_frequency(470e6); // 470MHz
+#elif CONFIG_866MHZ
+  ESP_LOGI(pcTaskGetName(NULL), "Frequency is 866MHz");
+  lora_set_frequency(866e6); // 866MHz
+#elif CONFIG_915MHZ
+  ESP_LOGI(pcTaskGetName(NULL), "Frequency is 915MHz");
+  lora_set_frequency(915e6); // 915MHz
+#elif CONFIG_OTHER
+  ESP_LOGI(pcTaskGetName(NULL), "Frequency is %dMHz", CONFIG_OTHER_FREQUENCY);
+  long frequency = CONFIG_OTHER_FREQUENCY * 1000000;
+  lora_set_frequency(frequency);
+#endif
 
   int cr = 1;
-	int bw = 7;
-	int sf = 7;
-  #if CONFIF_ADVANCED
-    cr = CONFIG_CODING_RATE
-    bw = CONFIG_BANDWIDTH;
-    sf = CONFIG_SF_RATE;
-  #endif
+  int bw = 7;
+  int sf = 7;
+#if CONFIF_ADVANCED
+  cr = CONFIG_CODING_RATE
+      bw = CONFIG_BANDWIDTH;
+  sf = CONFIG_SF_RATE;
+#endif
   lora_set_coding_rate(cr);
-	ESP_LOGI(pcTaskGetName(NULL), "coding_rate=%d", cr);
-	lora_set_bandwidth(bw);
-	ESP_LOGI(pcTaskGetName(NULL), "bandwidth=%d", bw);
-	lora_set_spreading_factor(sf);
-	ESP_LOGI(pcTaskGetName(NULL), "spreading_factor=%d", sf);
+  ESP_LOGI(pcTaskGetName(NULL), "coding_rate=%d", cr);
+  lora_set_bandwidth(bw);
+  ESP_LOGI(pcTaskGetName(NULL), "bandwidth=%d", bw);
+  lora_set_spreading_factor(sf);
+  ESP_LOGI(pcTaskGetName(NULL), "spreading_factor=%d", sf);
 
-
-    
-
-  //280 stuff
-  i2c_master_init(); 
+  // 280 stuff
+  i2c_master_init();
   printf("280 i2c init\n");
-    struct bme280_t bme280 = {
+  struct bme280_t bme280 = {
       .bus_write = BME280_I2C_bus_write,
       .bus_read = BME280_I2C_bus_read,
       .dev_addr = BME280_I2C_ADDRESS2,
-      .delay_msec = BME280_delay_msek
-    };
+      .delay_msec = BME280_delay_msek};
   s32 com_rslt;
-  s32 v_uncomp_pressure_s32=0;
-  s32 v_uncomp_temperature_s32=0;
-  s32 v_uncomp_humidity_s32=0;
+  s32 v_uncomp_pressure_s32 = 0;
+  s32 v_uncomp_temperature_s32 = 0;
+  s32 v_uncomp_humidity_s32 = 0;
   com_rslt = bme280_init(&bme280);
   com_rslt += bme280_set_oversamp_pressure(BME280_OVERSAMP_16X);
   com_rslt += bme280_set_oversamp_temperature(BME280_OVERSAMP_2X);
@@ -225,82 +218,90 @@ void app_main(void)
   com_rslt += bme280_set_standby_durn(BME280_STANDBY_TIME_1_MS);
   com_rslt += bme280_set_filter(BME280_FILTER_COEFF_16);
   com_rslt += bme280_set_power_mode(BME280_NORMAL_MODE);
-  //680 stuff
-  bme680_sensor_t* sensor = 0;
-        printf("before 680 i2c init\n");
+  // 680 stuff
+  bme680_sensor_t *sensor = 0;
+  printf("before 680 i2c init\n");
   i2c_init(0, I2C_SCL_PIN, I2C_SDA_PIN, I2C_FREQ);
   printf("i2c init of 680\n");
-  sensor = bme680_init_sensor (I2C_BUS, BME680_I2C_ADDRESS_2, 0);
-      printf("bme680 sensor init\n");
+  sensor = bme680_init_sensor(I2C_BUS, BME680_I2C_ADDRESS_2, 0);
+  printf("bme680 sensor init\n");
   bme680_set_oversampling_rates(sensor, osr_4x, osr_2x, osr_2x);
   bme680_set_filter_size(sensor, iir_size_7);
-  bme680_set_heater_profile (sensor, 0, 200, 100);
-  bme680_use_heater_profile (sensor, 0);
-  bme680_set_ambient_temperature (sensor, 25);
+  bme680_set_heater_profile(sensor, 0, 200, 100);
+  bme680_use_heater_profile(sensor, 0);
+  bme680_set_ambient_temperature(sensor, 25);
   bme680_values_float_t values;
   uint32_t duration = bme680_get_measurement_duration(sensor);
-        printf("duration: %d\n", duration);
+  printf("duration: %d\n", duration);
   pms5003_measurement_t reading = {0};
   pms5003_config_t pms0 = {
-              .set_pin = GPIO_NUM_13,
-              .reset_pin = GPIO_NUM_27,
-              .mode_pin = GPIO_NUM_26,
-              .rxd_pin = GPIO_NUM_14,
-              .txd_pin = GPIO_NUM_15,
-              .uart_instance = UART_NUM_1,
-              .uart_buffer_size = 128
-      };
+      .set_pin = GPIO_NUM_13,
+      .reset_pin = GPIO_NUM_27,
+      .mode_pin = GPIO_NUM_26,
+      .rxd_pin = GPIO_NUM_14,
+      .txd_pin = GPIO_NUM_15,
+      .uart_instance = UART_NUM_1,
+      .uart_buffer_size = 128};
   pms5003_setup(&pms0);
-    printf("pms setup\n");
-  
-	uint8_t buf[256]; // Maximum Payload size of SX1276/77/78/79 is 255
+  printf("pms setup\n");
+
+  uint8_t buf[256]; // Maximum Payload size of SX1276/77/78/79 is 255
   char sensor_data[256];
-  while (1){
+  char device_name[40];
+  uint8_t mac[6];
+  
+  esp_efuse_mac_get_default(mac);
+  vTaskDelay(1000/portTICK_RATE_MS);
+  sprintf(device_name, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+
+
+
+  while (1)
+  {
     // fieldnames = ["PM1", "PM2", "PM3", "Temp", "Humid", "Press", "Resist", "Time"]
 
-    vTaskDelay(1000/portTICK_RATE_MS);
+    vTaskDelay(1000 / portTICK_RATE_MS);
     time(&now);
     localtime_r(&now, &timeinfo);
     strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
-  printf("forcing 680 measurement\n");
-    
-    if (bme680_force_measurement(sensor)){
-            printf("getting pms measurement\n");
-      pms5003_make_measurement(&pms0, &reading);
+    printf("forcing 680 measurement\n");
+
+    if (bme680_force_measurement(sensor))
+    {
+      printf("getting pms measurement\n");
+      // pms5003_make_measurement(&pms0, &reading);
       printf("hi4\n");
       printf("getting 280 data\n");
       bme280_read_uncomp_pressure_temperature_humidity(
-      &v_uncomp_pressure_s32, &v_uncomp_temperature_s32, &v_uncomp_humidity_s32);
+          &v_uncomp_pressure_s32, &v_uncomp_temperature_s32, &v_uncomp_humidity_s32);
 
-      vTaskDelay (duration);
-      if (bme680_get_results_float (sensor, &values)){
+      vTaskDelay(duration);
+      if (bme680_get_results_float(sensor, &values))
+      {
 
-        printf("Lebron,%d, %d, %d, %.2f , %.2f , %.2f , %.2f ,%.2f,%.3f,%.3f, %s\n",
-        reading.pm1_0_std, reading.pm2_5_std, reading.pm10_std, 
-        values.temperature, values.humidity, values.pressure, values.gas_resistance, bme280_compensate_temperature_double(v_uncomp_temperature_s32), bme280_compensate_humidity_double(v_uncomp_humidity_s32),
-        bme280_compensate_pressure_double(v_uncomp_pressure_s32)/100,strftime_buf);
+        printf("%s,%d, %d, %d, %.2f , %.2f , %.2f , %.2f ,%.2f,%.3f,%.3f, %s\n", device_name,
+               reading.pm1_0_std, reading.pm2_5_std, reading.pm10_std,
+               values.temperature, values.humidity, values.pressure, values.gas_resistance, bme280_compensate_temperature_double(v_uncomp_temperature_s32), bme280_compensate_humidity_double(v_uncomp_humidity_s32),
+               bme280_compensate_pressure_double(v_uncomp_pressure_s32) / 100, strftime_buf);
 
-         sprintf(sensor_data,"Lebron,%d, %d, %d, %.2f , %.2f , %.2f , %.2f ,%.2f,%.3f,%.3f, %s\n",
-          reading.pm1_0_std, reading.pm2_5_std, reading.pm10_std, 
-          values.temperature, values.humidity, values.pressure, values.gas_resistance,
-          bme280_compensate_temperature_double(v_uncomp_temperature_s32), 
-          bme280_compensate_humidity_double(v_uncomp_humidity_s32),
-          bme280_compensate_pressure_double(v_uncomp_pressure_s32)/100,strftime_buf);
-        int send_data = sprintf((char *)buf,"%s",sensor_data);
-        lora_send_packet(buf,send_data);
-
+        sprintf(sensor_data, "Lebron,%d, %d, %d, %.2f , %.2f , %.2f , %.2f ,%.2f,%.3f,%.3f, %s\n",
+                reading.pm1_0_std, reading.pm2_5_std, reading.pm10_std,
+                values.temperature, values.humidity, values.pressure, values.gas_resistance,
+                bme280_compensate_temperature_double(v_uncomp_temperature_s32),
+                bme280_compensate_humidity_double(v_uncomp_humidity_s32),
+                bme280_compensate_pressure_double(v_uncomp_pressure_s32) / 100, strftime_buf);
+        int send_data = sprintf((char *)buf, "%s", sensor_data);
+        lora_send_packet(buf, send_data);
       }
-      else{
+      else
+      {
         printf("Error with get results float 680\n");
       }
-
     }
-    else {
+    else
+    {
       printf("Error with force_measurement 680\n");
     }
   }
-}  
-
-
-
-
+}
