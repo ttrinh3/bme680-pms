@@ -285,13 +285,14 @@ void app_main(void)
                values.temperature, values.humidity, values.pressure, values.gas_resistance, bme280_compensate_temperature_double(v_uncomp_temperature_s32), bme280_compensate_humidity_double(v_uncomp_humidity_s32),
                bme280_compensate_pressure_double(v_uncomp_pressure_s32) / 100, strftime_buf);
 
-        sprintf(sensor_data, "Lebron,%d, %d, %d, %.2f , %.2f , %.2f , %.2f ,%.2f,%.3f,%.3f, %s\n",
+        sprintf(sensor_data, "%s,%d, %d, %d, %.2f , %.2f , %.2f , %.2f ,%.2f,%.3f,%.3f, %s\n",device_name,
                 reading.pm1_0_std, reading.pm2_5_std, reading.pm10_std,
                 values.temperature, values.humidity, values.pressure, values.gas_resistance,
                 bme280_compensate_temperature_double(v_uncomp_temperature_s32),
                 bme280_compensate_humidity_double(v_uncomp_humidity_s32),
                 bme280_compensate_pressure_double(v_uncomp_pressure_s32) / 100, strftime_buf);
         int send_data = sprintf((char *)buf, "%s", sensor_data);
+        printf("sent %s", sensor_data);
         lora_send_packet(buf, send_data);
       }
       else
