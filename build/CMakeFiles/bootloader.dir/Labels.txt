@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+C:/VisualStudio/esp32/projects/centralnode-lora-mqtt-enterprise/build/CMakeFiles/bootloader
+C:/VisualStudio/esp32/projects/centralnode-lora-mqtt-enterprise/build/CMakeFiles/bootloader.rule
+C:/VisualStudio/esp32/projects/centralnode-lora-mqtt-enterprise/build/CMakeFiles/bootloader-complete.rule
+C:/VisualStudio/esp32/projects/centralnode-lora-mqtt-enterprise/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+C:/VisualStudio/esp32/projects/centralnode-lora-mqtt-enterprise/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+C:/VisualStudio/esp32/projects/centralnode-lora-mqtt-enterprise/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+C:/VisualStudio/esp32/projects/centralnode-lora-mqtt-enterprise/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+C:/VisualStudio/esp32/projects/centralnode-lora-mqtt-enterprise/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+C:/VisualStudio/esp32/projects/centralnode-lora-mqtt-enterprise/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+C:/VisualStudio/esp32/projects/centralnode-lora-mqtt-enterprise/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
