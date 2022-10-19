@@ -270,7 +270,7 @@ void app_main(void)
     if (bme680_force_measurement(sensor))
     {
       printf("getting pms measurement\n");
-      // pms5003_make_measurement(&pms0, &reading);
+      pms5003_make_measurement(&pms0, &reading);
       printf("hi4\n");
       printf("getting 280 data\n");
       bme280_read_uncomp_pressure_temperature_humidity(
