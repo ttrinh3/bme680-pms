@@ -16,7 +16,11 @@ This detects particulate matter
 
 Fires would ideally alter these values in a specific manner, and a well designed algorithm or machine learning model would be sensitive to these.
 
-We chose 
+We chose LoRa and MQTT as methods of communication. The LoRa module used is the rfm95x. 
+
+## Milestones
+
+The default branch contains code for a single esp32s3 board, which interfaces with the rfm, bme680 (AND 280 just for comparison purposes) and the PMS. The central node branch contains code for another esp32s3 to receive from the previous node and transmit to a remote mqtt server. That's pretty much it. Just basic sensor operation and transmission. Most of the code wasn't written from scratch but mostly pieced together from other open source projects. The top-secret branch contains the beginnings of RISCV ULP bit banged i2c interfacing for BME680
 
 
 
